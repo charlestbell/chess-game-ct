@@ -55,7 +55,12 @@ import petrify from "../../assets/img/items/petrify.png";
 import jumpyShoe from "../../assets/img/items/jumpyShoe.png";
 import springPad from "../../assets/img/items/springPad.png";
 import thunderstorm from "../../assets/img/items/thunderstorm.png";
-import { handleItemInfo } from "./gameStateUtilities";
+
+import {
+  handleItemInfo,
+  handleSelectPiece,
+  handlePerformMove,
+} from "./gameStateUtilities";
 
 import { throttle } from "lodash-es";
 import Inventory from "../../components/UI/Inventory/Inventory";
@@ -78,6 +83,8 @@ export default class Scene extends Component {
   constructor() {
     super();
     this.handleItemInfo = handleItemInfo.bind(this);
+    this.handleSelectPiece = handleSelectPiece.bind(this);
+    this.handlePerformMove = handlePerformMove.bind(this);
   }
 
   componentDidMount() {
@@ -2066,23 +2073,6 @@ export default class Scene extends Component {
     console.error(params);
   }
 
-  handleSelectPiece(params) {
-    const { fen, possibleMoves } = params;
-
-    const matrixIndex = getMatrixIndexFromFen(fen);
-    const meshIndex = this.boardPiecesArray.findIndex(
-      (item) =>
-        item.rowIndex === matrixIndex.rowIndex &&
-        item.colIndex === matrixIndex.colIndex
-    );
-
-    this.selectPiece(this.boardPiecesArray[meshIndex]);
-
-    if (this.side === this.currentTurn) {
-      this.possibleMoves = possibleMoves;
-    }
-  }
-
   handlePlayerLogOut(params) {
     this.isFinished = true;
     this.side = !this.currentTurn;
@@ -2115,139 +2105,6 @@ export default class Scene extends Component {
         to,
       },
     });
-  }
-
-  handlePerformMove(params) {
-    const { from, to, castling, pieceType, enPassant } = params;
-
-    const fromMatrixIndex = getMatrixIndexFromFen(from);
-    const toMatrixIndex = getMatrixIndexFromFen(to);
-
-    // Check chese piece on the target position: eat action performed at that time
-    const toIndex = this.boardPiecesArray.findIndex(
-      (item) =>
-        item.rowIndex === toMatrixIndex.rowIndex &&
-        item.colIndex === toMatrixIndex.colIndex
-    );
-
-    if (toIndex !== -1) {
-      this.scene.remove(this.boardPiecesArray[toIndex].mesh);
-      this.boardPiecesArray.splice(toIndex, 1);
-    }
-
-    // Move chese piece to the target position
-    const fromIndex = this.boardPiecesArray.findIndex(
-      (item) =>
-        item.rowIndex === fromMatrixIndex.rowIndex &&
-        item.colIndex === fromMatrixIndex.colIndex
-    );
-
-    // Enpassant case
-    if (
-      fromIndex !== -1 &&
-      (this.boardPiecesArray[fromIndex].pieceType === "p" ||
-        this.boardPiecesArray[fromIndex].pieceType === "P") &&
-      to === enPassant
-    ) {
-      const targetMatrixIndex = { ...toMatrixIndex };
-      if (this.currentTurn === "white") {
-        targetMatrixIndex.rowIndex -= 1;
-      } else {
-        targetMatrixIndex.rowIndex += 1;
-      }
-
-      const targetIndex = this.boardPiecesArray.findIndex(
-        (item) =>
-          item.rowIndex === targetMatrixIndex.rowIndex &&
-          item.colIndex === targetMatrixIndex.colIndex
-      );
-      if (targetIndex !== -1) {
-        this.scene.remove(this.boardPiecesArray[targetIndex].mesh);
-        this.boardPiecesArray.splice(targetIndex, 1);
-      }
-    }
-
-    if (fromIndex !== -1) {
-      if (pieceType) {
-        this.boardPiecesArray[fromIndex].pieceType = pieceType;
-
-        this.scene.remove(this.boardPiecesArray[fromIndex].mesh);
-
-        this.boardPiecesArray[fromIndex].mesh = this.getTargetMesh(pieceType);
-        const position = getMeshPosition(
-          this.boardPiecesArray[fromIndex].rowIndex,
-          this.boardPiecesArray[fromIndex].colIndex
-        );
-        this.boardPiecesArray[fromIndex].mesh.position.set(
-          position.x,
-          position.y,
-          position.z
-        );
-        this.boardPiecesArray[fromIndex].mesh.scale.set(
-          modelSize,
-          modelSize,
-          modelSize
-        );
-        this.boardPiecesArray[fromIndex].mesh.rotation.y =
-          pieceType === pieceType.toUpperCase() ? Math.PI : 0;
-
-        this.scene.add(this.boardPiecesArray[fromIndex].mesh);
-      }
-
-      this.movePiece(
-        this.boardPiecesArray[fromIndex],
-        toMatrixIndex.rowIndex,
-        toMatrixIndex.colIndex
-      );
-    }
-
-    if (castling.whiteLong) {
-      const matrixIndex = getMatrixIndexFromFen("A1");
-      const rook = this.boardPiecesArray.filter(
-        (item) =>
-          item.rowIndex === matrixIndex.rowIndex &&
-          item.colIndex === matrixIndex.colIndex
-      );
-      const targetIndex = getMatrixIndexFromFen("D1");
-
-      this.movePiece(rook[0], targetIndex.rowIndex, targetIndex.colIndex);
-    } else if (castling.whiteShort) {
-      const matrixIndex = getMatrixIndexFromFen("H1");
-      const rook = this.boardPiecesArray.filter(
-        (item) =>
-          item.rowIndex === matrixIndex.rowIndex &&
-          item.colIndex === matrixIndex.colIndex
-      );
-      const targetIndex = getMatrixIndexFromFen("F1");
-
-      this.movePiece(rook[0], targetIndex.rowIndex, targetIndex.colIndex);
-    } else if (castling.blackLong) {
-      const matrixIndex = getMatrixIndexFromFen("A8");
-      const rook = this.boardPiecesArray.filter(
-        (item) =>
-          item.rowIndex === matrixIndex.rowIndex &&
-          item.colIndex === matrixIndex.colIndex
-      );
-      const targetIndex = getMatrixIndexFromFen("D8");
-
-      this.movePiece(rook[0], targetIndex.rowIndex, targetIndex.colIndex);
-    } else if (castling.blackShort) {
-      const matrixIndex = getMatrixIndexFromFen("H8");
-      const rook = this.boardPiecesArray.filter(
-        (item) =>
-          item.rowIndex === matrixIndex.rowIndex &&
-          item.colIndex === matrixIndex.colIndex
-      );
-      const targetIndex = getMatrixIndexFromFen("F8");
-
-      this.movePiece(rook[0], targetIndex.rowIndex, targetIndex.colIndex);
-    }
-
-    if (this.selectedPiece) {
-      this.selectedPiece.mesh.position.y = this.selectedPiece.currentY;
-      this.selectedPiece = null;
-    }
-    this.possibleMoves = [];
   }
 
   handleUnSelectPiece() {
