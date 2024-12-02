@@ -16,13 +16,10 @@ import {
   dangerTone,
   gameModes,
   orbitControlProps,
-  bloomParams,
-  hemiLightProps,
   spotLightProps,
   spotLightProps2,
   pieceMoveSpeed,
   modelSize,
-  userTypes,
   resizeUpdateInterval,
   heroItems,
   timeLimit,
@@ -63,21 +60,15 @@ import { throttle } from "lodash-es";
 import Inventory from "../../components/UI/Inventory/Inventory";
 import "./GameScene.scss";
 
-import {
-  connectWallet,
-  getCurrentWalletConnected,
-} from "../../utils/interact.js";
+import { connectWallet, getContractWithSigner } from "../../utils/interact.js";
+
 import {
   chainId,
   llgContractAddress,
   llgRewardContractAddress,
 } from "../../utils/address";
 
-import {
-  getContractWithSigner,
-  getContractWithoutSigner,
-} from "../../utils/interact";
-import { Contract, ethers } from "ethers";
+import { ethers } from "ethers";
 
 const llgContractABI = require("../../utils/llg-contract-abi.json");
 const llgRewardContractABI = require("../../utils/llg-reward-contract-abi.json");
@@ -105,7 +96,6 @@ export default class Scene extends Component {
     this.getTax();
     this.getStartTimeOfDay();
 
-    console.error(this.props.wallet);
     /**********************************  Scene Environment Setup  **********************************/
     /////////////////////////////////////////////////////////////////////////////////////////////////
     var scene = new THREE.Scene();
